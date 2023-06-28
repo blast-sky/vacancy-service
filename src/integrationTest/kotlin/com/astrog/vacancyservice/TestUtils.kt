@@ -1,14 +1,22 @@
 package com.astrog.vacancyservice
 
-import com.astrog.vacancyservice.model.dto.*
-import java.util.*
+import com.astrog.vacancyservice.model.dto.Employer
+import com.astrog.vacancyservice.model.dto.Experience
+import com.astrog.vacancyservice.model.dto.Item
+import com.astrog.vacancyservice.model.dto.LogoUrls
+import com.astrog.vacancyservice.model.dto.Region
+import com.astrog.vacancyservice.model.dto.Salary
+import com.astrog.vacancyservice.model.dto.Snippet
+import com.astrog.vacancyservice.model.dto.Type
+import java.util.UUID
+import kotlin.random.Random
 
 fun randomString(): String {
     return UUID.randomUUID().toString()
 }
 
 fun randomInt(): Int {
-    return Random.from { 0 }.nextInt()
+    return Random.nextInt()
 }
 
 fun randomItem(): Item {
