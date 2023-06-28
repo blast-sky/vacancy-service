@@ -1,3 +1,23 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      password: ${REDIS_PASSWORD}
+
+      jedis:
+        pool:
+          enabled: true
+          min-idle: 4
+
+
+
+
+spring-doc:
+  swagger-ui:
+    operationsSorter: method
+  api-docs:
+    path: /api-docs
+
 hh:
-  url: localhost
-  token: 123
+  base-url: https://api.hh.ru/
+
