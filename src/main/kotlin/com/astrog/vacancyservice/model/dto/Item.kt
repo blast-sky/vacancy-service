@@ -37,9 +37,9 @@ data class Item(
     val url: String,
     val name: String,
     val area: Region,
-    val salary: Salary,
-    val snippet: Snippet,
+    val salary: Salary?,
+    val snippet: Snippet?,
     val employer: Employer,
     val schedule: Schedule?,
-    val experience: Experience,
+    val experience: Experience?,
 )

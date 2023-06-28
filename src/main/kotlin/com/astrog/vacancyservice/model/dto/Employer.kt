@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class Employer(
     @JsonProperty("accredited_it_employer")
-    val accreditedIdEmployer: Boolean,
+    val accreditedIdEmployer: Boolean?,
 
     @JsonProperty("alternate_url")
-    val alternateURL: String,
+    val alternateURL: String?,
 
     @JsonProperty("logo_urls")
-    val logoUrls: LogoUrls,
+    val logoUrls: LogoUrls?,
 
     @JsonProperty("vacancies_url")
     val vacanciesUrl: String?,
@@ -18,5 +18,5 @@ data class Employer(
     val id: String?,
     val name: String,
     val trusted: Boolean,
-    val url: String,
+    val url: String?,
 )

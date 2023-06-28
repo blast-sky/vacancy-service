@@ -1,6 +1,6 @@
 package com.astrog.vacancyservice.model.dto
 
 data class Schedule(
-    val id: Int,
+    val id: String,
     val name: String,
 )
