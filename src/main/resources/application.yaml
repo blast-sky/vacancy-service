@@ -7,10 +7,7 @@ spring:
       jedis:
         pool:
           enabled: true
-          min-idle: 4
-
-
-
+          min-idle: 1
 
 spring-doc:
   swagger-ui:
