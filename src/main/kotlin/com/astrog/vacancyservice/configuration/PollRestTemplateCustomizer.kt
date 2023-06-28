@@ -12,6 +12,6 @@ class PollRestTemplateCustomizer(
 ) : RestTemplateCustomizer {
 
     override fun customize(restTemplate: RestTemplate) {
-        restTemplate.uriTemplateHandler = DefaultUriBuilderFactory(hhProperty.url)
+        restTemplate.uriTemplateHandler = DefaultUriBuilderFactory(hhProperty.baseUrl)
     }
 }
