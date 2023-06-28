@@ -1,6 +1,6 @@
 package com.astrog.vacancyservice.controller
 
-import com.astrog.vacancyservice.model.dto.*
+import com.astrog.vacancyservice.model.dto.VacanciesResponse
 import com.astrog.vacancyservice.model.redis.Vacancy
 import com.astrog.vacancyservice.randomInt
 import com.astrog.vacancyservice.randomItem
@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.getForObject
-import java.net.URI
 
 
 @SpringBootTest(classes = [ControllerTestConfiguration::class, VacancyPullerController::class])
@@ -36,7 +35,7 @@ class VacancyPullerControllerTest(
     fun `pull-out MUST send to rabbit WHEN new items received`() {
         val item = randomItem()
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<URI>()) }
+        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
             .returns(VacanciesResponse(1, 1, 1, 1, listOf(item)))
 
         every { vacancyRepository.existsByRemoteId(item.id) }
@@ -50,7 +49,7 @@ class VacancyPullerControllerTest(
             .andExpect { status { isOk() } }
 
         verify {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<URI>())
+            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
             vacancyRepository.existsByRemoteId(item.id)
             vacancyRepository.save(Vacancy(remoteId = item.id))
             rabbitTemplate.convertAndSend(ActuatorService.TOPIC, item)
@@ -62,7 +61,7 @@ class VacancyPullerControllerTest(
         val item1 = randomItem()
         val item2 = item1.copy()
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<URI>()) }
+        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
             .returns(VacanciesResponse(randomInt(), randomInt(), randomInt(), 2, listOf(item1, item2)))
 
         every { vacancyRepository.existsByRemoteId(item1.id) }
@@ -76,7 +75,7 @@ class VacancyPullerControllerTest(
             .andExpect { status { isOk() } }
 
         verify {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<URI>())
+            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
             vacancyRepository.save(Vacancy(remoteId = item1.id))
             rabbitTemplate.convertAndSend(ActuatorService.TOPIC, item1)
         }
@@ -91,7 +90,7 @@ class VacancyPullerControllerTest(
         val response =
             VacanciesResponse(randomInt(), randomInt(), randomInt(), PullerService.defaultPerPage, emptyList())
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<URI>()) }
+        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
             .returnsMany(
                 response,
                 response.copy(found = 0),
@@ -102,7 +101,7 @@ class VacancyPullerControllerTest(
             .andExpect { status { isOk() } }
 
         verify(exactly = 2) {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<URI>())
+            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
         }
     }
 }
