@@ -7,7 +7,7 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.DefaultUriBuilderFactory
 
 @Component
-class PollRestTemplateCustomizer(
+class PullRestTemplateCustomizer(
     private val hhProperty: HHProperty,
 ) : RestTemplateCustomizer {
 

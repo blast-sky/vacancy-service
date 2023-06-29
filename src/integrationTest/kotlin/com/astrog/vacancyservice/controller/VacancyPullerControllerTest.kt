@@ -4,14 +4,13 @@ import com.astrog.vacancyservice.model.dto.VacanciesResponse
 import com.astrog.vacancyservice.model.redis.Vacancy
 import com.astrog.vacancyservice.randomInt
 import com.astrog.vacancyservice.randomItem
-import com.astrog.vacancyservice.randomString
 import com.astrog.vacancyservice.repository.VacancyRepository
-import com.astrog.vacancyservice.service.ActuatorService
 import com.astrog.vacancyservice.service.PullerService
+import com.astrog.vacancyservice.service.RabbitSender
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.amqp.rabbit.core.RabbitMessageOperations
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.TestConstructor
@@ -27,22 +26,23 @@ import org.springframework.web.client.getForObject
 class VacancyPullerControllerTest(
     private val mockMvc: MockMvc,
     private val hhRestTemplate: RestTemplate,
-    private val rabbitTemplate: RabbitTemplate,
     private val vacancyRepository: VacancyRepository,
+    private val rabbitMessageOperations: RabbitMessageOperations,
 ) {
 
     @Test
     fun `pull-out MUST send to rabbit WHEN new items received`() {
         val item = randomItem()
+        val vacancy = Vacancy(item.id)
 
         every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
             .returns(VacanciesResponse(1, 1, 1, 1, listOf(item)))
 
-        every { vacancyRepository.existsByRemoteId(item.id) }
+        every { vacancyRepository.existsById(item.id) }
             .returns(false)
 
-        every { vacancyRepository.save(Vacancy(remoteId = item.id)) }
-            .returns(Vacancy(remoteId = randomString()))
+        every { vacancyRepository.save(vacancy) }
+            .returns(vacancy)
 
         mockMvc.post("/puller/pull-out")
             .andDo { print() }
@@ -50,9 +50,9 @@ class VacancyPullerControllerTest(
 
         verify {
             hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
-            vacancyRepository.existsByRemoteId(item.id)
-            vacancyRepository.save(Vacancy(remoteId = item.id))
-            rabbitTemplate.convertAndSend(ActuatorService.TOPIC, item)
+            vacancyRepository.existsById(item.id)
+            vacancyRepository.save(vacancy)
+            rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item)
         }
     }
 
@@ -60,15 +60,16 @@ class VacancyPullerControllerTest(
     fun `pull-out MUST not send to rabbit WHEN present items received`() {
         val item1 = randomItem()
         val item2 = item1.copy()
+        val vacancy1 = Vacancy(item1.id)
 
         every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
             .returns(VacanciesResponse(randomInt(), randomInt(), randomInt(), 2, listOf(item1, item2)))
 
-        every { vacancyRepository.existsByRemoteId(item1.id) }
+        every { vacancyRepository.existsById(item1.id) }
             .returnsMany(false, true)
 
         every { vacancyRepository.save(any()) }
-            .returns(Vacancy(remoteId = randomString()))
+            .returns(vacancy1)
 
         mockMvc.post("/puller/pull-out")
             .andDo { print() }
@@ -76,12 +77,12 @@ class VacancyPullerControllerTest(
 
         verify {
             hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
-            vacancyRepository.save(Vacancy(remoteId = item1.id))
-            rabbitTemplate.convertAndSend(ActuatorService.TOPIC, item1)
+            vacancyRepository.save(vacancy1)
+            rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item1)
         }
 
         verify(exactly = 2) {
-            vacancyRepository.existsByRemoteId(item1.id)
+            vacancyRepository.existsById(item1.id)
         }
     }
 

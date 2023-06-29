@@ -11,20 +11,26 @@ import org.springframework.web.util.UriComponentsBuilder
 class PullerService(
     private val hhRestTemplate: RestTemplate,
     private val actuatorService: ActuatorService,
+    private val rabbitSender: RabbitSender,
 ) {
 
     fun pullLastPages(pages: Int = defaultPages, perPage: Int = defaultPerPage) {
         for(page in 0 until pages) {
-            val response = pull(page, perPage)
+            val pullResponse = pullAllVacancies(page, perPage)
 
-            actuatorService.checkVacanciesAndNotifyAboutNew(response.items)
+            val newVacancies = pullResponse.items.filterNot(actuatorService::checkVacancyPresent)
 
-            if(response.found < perPage)
+            newVacancies.forEach { newVacancy ->
+                actuatorService.saveVacancy(newVacancy)
+                rabbitSender.sendVacancy(newVacancy)
+            }
+
+            if(pullResponse.found < perPage)
                 break
         }
     }
 
-    private fun pull(page: Int, perPage: Int): VacanciesResponse {
+    private fun pullAllVacancies(page: Int, perPage: Int): VacanciesResponse {
         val uri = UriComponentsBuilder
             .fromUriString(VACANCIES_URL)
             .queryParam(PAGE, page)
