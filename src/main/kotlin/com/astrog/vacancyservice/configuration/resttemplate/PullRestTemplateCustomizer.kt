@@ -1,4 +1,4 @@
-package com.astrog.vacancyservice.configuration
+package com.astrog.vacancyservice.configuration.resttemplate
 
 import com.astrog.vacancyservice.configuration.property.HHProperty
 import org.springframework.boot.web.client.RestTemplateCustomizer

@@ -1,6 +1,7 @@
 package com.astrog.vacancyservice.service
 
 import com.astrog.vacancyservice.model.dto.VacanciesResponse
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.getForObject
@@ -14,6 +15,7 @@ class PullerService(
     private val rabbitSender: RabbitSender,
 ) {
 
+    @Async
     fun pullLastPages(pages: Int = defaultPages, perPage: Int = defaultPerPage) {
         for(page in 0 until pages) {
             val pullResponse = pullAllVacancies(page, perPage)

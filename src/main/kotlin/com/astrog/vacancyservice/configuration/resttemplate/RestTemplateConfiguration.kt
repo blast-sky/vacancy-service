@@ -1,4 +1,4 @@
-package com.astrog.vacancyservice.configuration
+package com.astrog.vacancyservice.configuration.resttemplate
 
 import org.springframework.boot.web.client.RestTemplateBuilder
 import org.springframework.context.annotation.Bean

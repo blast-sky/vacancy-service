@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: enable_async
   data:
     redis:
       host: ${REDIS_HOST:localhost}
