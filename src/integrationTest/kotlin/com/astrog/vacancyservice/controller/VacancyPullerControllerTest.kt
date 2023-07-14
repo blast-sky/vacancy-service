@@ -7,28 +7,34 @@ import com.astrog.vacancyservice.randomItem
 import com.astrog.vacancyservice.repository.VacancyRepository
 import com.astrog.vacancyservice.service.PullerService
 import com.astrog.vacancyservice.service.RabbitSender
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.contains
 import org.springframework.amqp.rabbit.core.RabbitMessageOperations
+import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureMockRestServiceServer
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestConstructor
+import org.springframework.test.web.client.MockRestServiceServer
+import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.getForObject
 
 @ActiveProfiles("test")
-@SpringBootTest(classes = [ControllerTestConfiguration::class, VacancyPullerController::class])
+@SpringBootTest(classes = [ControllerTestConfiguration::class])
 @AutoConfigureMockMvc
+@AutoConfigureMockRestServiceServer
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class VacancyPullerControllerTest(
     private val mockMvc: MockMvc,
-    private val hhRestTemplate: RestTemplate,
+    private val mockRestServiceServer: MockRestServiceServer,
     private val vacancyRepository: VacancyRepository,
     private val rabbitMessageOperations: RabbitMessageOperations,
+    private val objectMapper: ObjectMapper,
 ) {
 
     @Test
@@ -36,8 +42,9 @@ class VacancyPullerControllerTest(
         val item = randomItem()
         val vacancy = Vacancy(item.id)
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
-            .returns(VacanciesResponse(1, 1, 1, 1, listOf(item)))
+        val responseVacancyJson = objectMapper.writeValueAsString(VacanciesResponse(1, 1, 1, 1, listOf(item)))
+        mockRestServiceServer.expect { contains(PullerService.VACANCIES_URL) }
+            .andRespond(withSuccess(responseVacancyJson, MediaType.APPLICATION_JSON))
 
         every { vacancyRepository.existsById(item.id) }
             .returns(false)
@@ -50,7 +57,6 @@ class VacancyPullerControllerTest(
             .andExpect { status { isOk() } }
 
         verify {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
             vacancyRepository.existsById(item.id)
             vacancyRepository.save(vacancy)
             rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item)
@@ -63,8 +69,9 @@ class VacancyPullerControllerTest(
         val item2 = item1.copy()
         val vacancy1 = Vacancy(item1.id)
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
-            .returns(VacanciesResponse(randomInt(), randomInt(), randomInt(), 2, listOf(item1, item2)))
+        val responseVacancyJson = objectMapper.writeValueAsString(VacanciesResponse(1, 1, 1, 1, listOf(item1, item2)))
+        mockRestServiceServer.expect { contains(PullerService.VACANCIES_URL) }
+            .andRespond(withSuccess(responseVacancyJson, MediaType.APPLICATION_JSON))
 
         every { vacancyRepository.existsById(item1.id) }
             .returnsMany(false, true)
@@ -77,7 +84,6 @@ class VacancyPullerControllerTest(
             .andExpect { status { isOk() } }
 
         verify {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
             vacancyRepository.save(vacancy1)
             rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item1)
         }
@@ -92,18 +98,22 @@ class VacancyPullerControllerTest(
         val response =
             VacanciesResponse(randomInt(), randomInt(), randomInt(), PullerService.defaultPerPage, emptyList())
 
-        every { hhRestTemplate.getForObject<VacanciesResponse>(any<String>()) }
-            .returnsMany(
-                response,
-                response.copy(found = 0),
-            )
+        val responseVacancyJson = objectMapper.writeValueAsString(response)
+        mockRestServiceServer.expect {
+            contains(PullerService.VACANCIES_URL)
+            contains("page=1")
+        }
+            .andRespond(withSuccess(responseVacancyJson, MediaType.APPLICATION_JSON))
+
+        val responseVacancyJson2 = objectMapper.writeValueAsString(response.copy(found = 0))
+        mockRestServiceServer.expect {
+            contains(PullerService.VACANCIES_URL)
+            contains("page=2")
+        }
+            .andRespond(withSuccess(responseVacancyJson2, MediaType.APPLICATION_JSON))
 
         mockMvc.post("/puller/pull-out")
             .andDo { print() }
             .andExpect { status { isOk() } }
-
-        verify(exactly = 2) {
-            hhRestTemplate.getForObject<VacanciesResponse>(any<String>())
-        }
     }
 }
