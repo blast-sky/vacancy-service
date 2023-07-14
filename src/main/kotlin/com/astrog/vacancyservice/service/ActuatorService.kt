@@ -10,7 +10,7 @@ class ActuatorService(
     private val vacancyRepository: VacancyRepository,
 ) {
 
-    fun checkVacancyPresent(vacancy: Item): Boolean {
+    fun isVacancyPresent(vacancy: Item): Boolean {
         return vacancyRepository.existsById(vacancy.id)
     }
 
