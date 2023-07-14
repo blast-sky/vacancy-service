@@ -8,7 +8,6 @@ import com.astrog.vacancyservice.randomItem
 import com.astrog.vacancyservice.repository.VacancyRepository
 import com.astrog.vacancyservice.service.PullerService
 import com.astrog.vacancyservice.service.RabbitSender
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
@@ -27,7 +26,6 @@ import org.springframework.test.web.servlet.post
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class VacancyPullerControllerTest(
     private val mockMvc: MockMvc,
-    private val objectMapper: ObjectMapper,
 ) {
 
     @MockkBean
