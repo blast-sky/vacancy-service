@@ -14,7 +14,7 @@ class RabbitSender(
     }
 
     companion object {
-        const val ROUTING_KEY = "vacancies.new"
-        const val EXCHANGE_NAME = "vacancy.service"
+        const val ROUTING_KEY = "hhsva.service.vacancies.new"
+        const val EXCHANGE_NAME = "hhsva.service"
     }
 }

@@ -20,7 +20,7 @@ class PullerService(
         for(page in 0 until pages) {
             val pullResponse = pullAllVacancies(page, perPage)
 
-            val newVacancies = pullResponse.items.filterNot(actuatorService::checkVacancyPresent)
+            val newVacancies = pullResponse.items.filterNot(actuatorService::isVacancyPresent)
 
             newVacancies.forEach { newVacancy ->
                 actuatorService.saveVacancy(newVacancy)
