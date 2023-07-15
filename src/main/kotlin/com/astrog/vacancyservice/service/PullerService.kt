@@ -14,7 +14,7 @@ class PullerService(
 
     @Async
     fun pullLastPages(pages: Int = defaultPages, perPage: Int = defaultPerPage) {
-        for(page in 0 until pages) {
+        for (page in 0 until pages) {
             val pullResponse = vacanciesClient.getVacancies(page, perPage)
 
             val newVacancies = pullResponse.items
@@ -25,7 +25,7 @@ class PullerService(
                 rabbitSender.sendVacancy(newVacancy)
             }
 
-            if(pullResponse.found < perPage)
+            if (pullResponse.found < perPage)
                 break
         }
     }
