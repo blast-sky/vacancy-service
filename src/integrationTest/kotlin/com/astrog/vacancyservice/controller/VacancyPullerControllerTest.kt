@@ -2,37 +2,35 @@ package com.astrog.vacancyservice.controller
 
 import com.astrog.vacancyservice.client.VacanciesClient
 import com.astrog.vacancyservice.model.dto.VacanciesResponse
-import com.astrog.vacancyservice.model.redis.Vacancy
 import com.astrog.vacancyservice.randomInt
 import com.astrog.vacancyservice.randomItem
-import com.astrog.vacancyservice.repository.VacancyRepository
+import com.astrog.vacancyservice.repository.VacancyIdRepository
 import com.astrog.vacancyservice.service.PullerService
 import com.astrog.vacancyservice.service.RabbitSender
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.coEvery
+import io.mockk.coVerify
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.rabbit.core.RabbitMessageOperations
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestConstructor
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.post
+import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
-@SpringBootTest(properties = ["hh.baseUrl=localhost"])
-@AutoConfigureMockMvc
+@SpringBootTest(properties = ["hh.base-url=localhost"])
+@AutoConfigureWebTestClient
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class VacancyPullerControllerTest(
-    private val mockMvc: MockMvc,
+    private val webTestClient: WebTestClient,
 ) {
 
     @MockkBean
     lateinit var vacanciesClient: VacanciesClient
 
     @MockkBean(relaxed = true)
-    lateinit var vacancyRepository: VacancyRepository
+    lateinit var vacancyIdRepository: VacancyIdRepository
 
     @MockkBean(relaxed = true)
     lateinit var rabbitMessageOperations: RabbitMessageOperations
@@ -40,25 +38,26 @@ class VacancyPullerControllerTest(
     @Test
     fun `pull-out MUST send to rabbit WHEN new items received`() {
         val item = randomItem()
-        val vacancy = Vacancy(item.id)
+        val vacancyId = item.id
 
-        every { vacanciesClient.getVacancies(any(), any()) }
+        coEvery { vacanciesClient.getVacancies(any(), any()) }
             .returns(VacanciesResponse(1, 1, 1, 1, listOf(item)))
 
-        every { vacancyRepository.existsById(item.id) }
+        coEvery { vacancyIdRepository.existsById(item.id) }
             .returns(false)
 
-        every { vacancyRepository.save(vacancy) }
-            .returns(vacancy)
+        coEvery { vacancyIdRepository.save(vacancyId) }
+            .returns(vacancyId)
 
-        mockMvc.post("/puller/pull-out")
-            .andDo { print() }
-            .andExpect { status { isOk() } }
+        webTestClient.post()
+            .uri("/puller/pull-out")
+            .exchange()
+            .expectStatus().isAccepted
 
-        verify {
+        coVerify {
             vacanciesClient.getVacancies(any(), any())
-            vacancyRepository.existsById(item.id)
-            vacancyRepository.save(vacancy)
+            vacancyIdRepository.existsById(item.id)
+            vacancyIdRepository.save(vacancyId)
             rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item)
         }
     }
@@ -67,28 +66,29 @@ class VacancyPullerControllerTest(
     fun `pull-out MUST not send to rabbit WHEN present items received`() {
         val item1 = randomItem()
         val item2 = item1.copy()
-        val vacancy = Vacancy(item1.id)
+        val vacancy = item1.id
 
-        every { vacanciesClient.getVacancies(any(), any()) }
+        coEvery { vacanciesClient.getVacancies(any(), any()) }
             .returns(VacanciesResponse(1, 1, 1, 1, listOf(item1, item2)))
 
-        every { vacancyRepository.existsById(item1.id) }
+        coEvery { vacancyIdRepository.existsById(item1.id) }
             .returnsMany(false, true)
 
-        every { vacancyRepository.save(any()) }
+        coEvery { vacancyIdRepository.save(any()) }
             .returns(vacancy)
 
-        mockMvc.post("/puller/pull-out")
-            .andDo { print() }
-            .andExpect { status { isOk() } }
+        webTestClient.post()
+            .uri("/puller/pull-out")
+            .exchange()
+            .expectStatus().isAccepted
 
-        verify {
-            vacancyRepository.save(vacancy)
+        coVerify {
+            vacancyIdRepository.save(vacancy)
             rabbitMessageOperations.convertAndSend(RabbitSender.EXCHANGE_NAME, RabbitSender.ROUTING_KEY, item1)
         }
 
-        verify(exactly = 2) {
-            vacancyRepository.existsById(item1.id)
+        coVerify(exactly = 2) {
+            vacancyIdRepository.existsById(item1.id)
         }
     }
 
@@ -97,14 +97,15 @@ class VacancyPullerControllerTest(
         val response =
             VacanciesResponse(randomInt(), randomInt(), randomInt(), PullerService.defaultPerPage, emptyList())
 
-        every { vacanciesClient.getVacancies(any(), any()) }
+        coEvery { vacanciesClient.getVacancies(any(), any()) }
             .returnsMany(
                 response,
                 response.copy(found = 0)
             )
 
-        mockMvc.post("/puller/pull-out")
-            .andDo { print() }
-            .andExpect { status { isOk() } }
+        webTestClient.post()
+            .uri("/puller/pull-out")
+            .exchange()
+            .expectStatus().isAccepted
     }
 }

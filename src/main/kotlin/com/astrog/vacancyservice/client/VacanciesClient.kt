@@ -1,18 +1,21 @@
 package com.astrog.vacancyservice.client
 
 import com.astrog.vacancyservice.model.dto.VacanciesResponse
-import org.springframework.cloud.openfeign.FeignClient
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
 
-@FeignClient(name = "vacancies-client", url = "\${hh.base-url}")
-interface VacanciesClient {
+@Component
+class VacanciesClient(private val hhWebClient: WebClient) {
 
-    @GetMapping(VACANCIES_URL)
-    fun getVacancies(
-        @RequestParam(PAGE) page: Int,
-        @RequestParam(PER_PAGE) perPage: Int
-    ): VacanciesResponse
+    suspend fun getVacancies(page: Int, perPage: Int): VacanciesResponse {
+        return hhWebClient.get()
+            .uri(VACANCIES_URL)
+            .attribute(PAGE, page)
+            .attribute(PER_PAGE, perPage)
+            .retrieve()
+            .awaitBody<VacanciesResponse>()
+    }
 
     companion object {
         const val VACANCIES_URL = "vacancies"

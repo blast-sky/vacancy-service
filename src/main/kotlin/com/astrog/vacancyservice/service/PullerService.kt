@@ -1,27 +1,25 @@
 package com.astrog.vacancyservice.service
 
 import com.astrog.vacancyservice.client.VacanciesClient
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 
 
 @Service
 class PullerService(
     private val vacanciesClient: VacanciesClient,
-    private val actuatorService: ActuatorService,
+    private val vacanciesActuatorService: VacanciesActuatorService,
     private val rabbitSender: RabbitSender,
 ) {
 
-    @Async
-    fun pullLastPages(pages: Int = defaultPages, perPage: Int = defaultPerPage) {
+    suspend fun pullLatestPages(pages: Int = defaultPages, perPage: Int = defaultPerPage) {
         for (page in 0 until pages) {
             val pullResponse = vacanciesClient.getVacancies(page, perPage)
 
             val newVacancies = pullResponse.items
-                .filterNot(actuatorService::isVacancyPresent)
+                .filterNot { vacanciesActuatorService.isVacancyPresent(it) }
 
             newVacancies.forEach { newVacancy ->
-                actuatorService.saveVacancy(newVacancy)
+                vacanciesActuatorService.saveVacancy(newVacancy)
                 rabbitSender.sendVacancy(newVacancy)
             }
 

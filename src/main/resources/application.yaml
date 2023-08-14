@@ -7,18 +7,18 @@ spring:
       host: ${REDIS_HOST:localhost}
       password: ${REDIS_PASSWORD:}
 
-      jedis:
-        pool:
-          enabled: true
-          min-idle: 1
-
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
     password: ${RABBIT_PASSWORD:guest}
     username: ${RABBIT_USERNAME:guest}
 
+server:
+  error:
+    include-stacktrace: never
+
 spring-doc:
   swagger-ui:
+    path: /swagger-ui
     operationsSorter: method
   api-docs:
     path: /vacancy-service/api-docs
